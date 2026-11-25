@@ -9,14 +9,14 @@
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #2b2b2b; color: white; margin-top: 30px; }
-        #board { width: 350px; margin: 20px auto; }
-        h1 { color: #4CAF50; font-size: 22px; }
-        p { font-size: 14px; color: #ccc; }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #2b2b2b; color: white; margin-top: 20px; }
+        #board { width: 350px; margin: 15px auto; }
+        h1 { color: #4CAF50; font-size: 20px; }
+        p { font-size: 13px; color: #ccc; }
     </style>
 </head>
 <body>
-    <h1>Mürşüdün Şahmat Botu (1600 Elo)</h1>
+    <h1>Mürşüdün Şahmat Botu</h1>
     <div id="board"></div>
     <p>Daşları hərəkət etdirmək üçün barmağınla sürüklə.</p>
 
@@ -46,6 +46,7 @@
         var config = {
             draggable: true,
             position: 'start',
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             onDragStart: onDragStart,
             onDrop: onDrop
         };
