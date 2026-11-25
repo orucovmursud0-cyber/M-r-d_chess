@@ -3,54 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mürşüdün Şahmat Botu</title>
+    <title>Mürşüdün Şahmat Botu (1600 Elo)</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #2b2b2b; color: white; margin-top: 20px; }
-        #board { width: 350px; margin: 15px auto; }
-        h1 { color: #4CAF50; font-size: 20px; }
-        p { font-size: 13px; color: #ccc; }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #1e1e1e; color: white; margin: 0; padding: 15px; }
+        h1 { color: #4CAF50; font-size: 20px; margin-bottom: 5px; }
+        #status { font-size: 15px; color: #ffd700; margin-bottom: 10px; font-weight: bold; }
+        #board { width: 340px; max-width: 95vw; margin: 0 auto; }
+        button { margin-top: 15px; padding: 10px 20px; font-size: 15px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:active { background-color: #3e8e41; }
     </style>
 </head>
 <body>
-    <h1>Mürşüdün Şahmat Botu</h1>
+    <h1>Mürşüdün Şahmat Botu (1600 Elo)</h1>
+    <div id="status">Sənin növbəndir (Ağlar)</div>
     <div id="board"></div>
-    <p>Daşları hərəkət etdirmək üçün barmağınla sürüklə.</p>
+    <button onclick="resetGame()">Yeni Oyun</button>
 
     <script>
         var board = null;
         var game = new Chess();
 
-        function makeRandomMove() {
-            var possibleMoves = game.moves();
+        var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
+        var pst = {
+            p: [
+                [0,  0,  0,  0,  0,  0,  0,  0],
+                [50, 50, 50, 50, 50, 50, 50, 50],
+                [10, 10, 20, 30, 30, 20, 10, 10],
+                [5,  5, 10, 25, 25, 10,  5,  5],
+                [0,  0,  0, 20, 20,  0,  0,  0],
+                [5, -5,-10,  0,  0,-10, -5,  5],
+                [5, 10, 10,-20,-20, 10, 10,  5],
+                [0,  0,  0,  0,  0,  0,  0,  0]
+            ],
+            n: [
+                [-50,-40,-30,-30,-30,-30,-40,-50],
+                [-40,-20,  0,  0,  0,  0,-20,-40],
+                [-30,  0, 10, 15, 15, 10,  0,-30],
+                [-30,  5, 15, 20, 20, 15,  5,-30],
+                [-30,  0, 15, 20, 20, 15,  0,-30],
+                [-30,  5, 10, 15, 15, 10,  5,-30],
+                [-40,-20,  0,  5,  5,  0,-20,-40],
+                [-50,-40,-30,-30,-30,-30,-40,-50]
+            ]
+        };
+
+        function evaluateBoard(game) {
+            var totalEvaluation = 0;
+            var boardState = game.board();
+            for (var i = 0; i < 8; i++) {
+                for (var j = 0; j < 8; j++) {
+                    var piece = boardState[i][j];
+                    if (piece !== null) {
+                        var val = pieceValues[piece.type] || 0;
+                        if (pst[piece.type]) {
+                            val += (piece.color === 'w' ? pst[piece.type][i][j] : pst[piece.type][7 - i][j]);
+                        }
+                        totalEvaluation += (piece.color === 'w' ? val : -val);
+                    }
+                }
+            }
+            return totalEvaluation;
+        }
+
+        function minimax(depth, game, alpha, beta, isMaximisingPlayer) {
+            if (depth === 0 || game.game_over()) {
+                return -evaluateBoard(game);
+            }
+            var newGameMoves = game.moves();
+            if (isMaximisingPlayer) {
+                var bestMove = -99999;
+                for (var i = 0; i < newGameMoves.length; i++) {
+                    game.move(newGameMoves[i]);
+                    bestMove = Math.max(bestMove, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
+                    game.undo();
+                    alpha = Math.max(alpha, bestMove);
+                    if (beta <= alpha) return bestMove;
+                }
+                return bestMove;
+            } else {
+                var bestMove = 99999;
+                for (var i = 0; i < newGameMoves.length; i++) {
+                    game.move(newGameMoves[i]);
+                    bestMove = Math.min(bestMove, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
+                    game.undo();
+                    beta = Math.min(beta, bestMove);
+                    if (beta <= alpha) return bestMove;
+                }
+                return bestMove;
+            }
+        }
+
+        function makeBestMove() {
             if (game.game_over()) return;
-            var randomIdx = Math.floor(Math.random() * possibleMoves.length);
-            game.move(possibleMoves[randomIdx]);
+            var possibleMoves = game.moves();
+            var bestMove = null;
+            var bestValue = -99999;
+
+            for (var i = 0; i < possibleMoves.length; i++) {
+                var move = possibleMoves[i];
+                game.move(move);
+                var boardValue = minimax(2, game, -100000, 100000, false);
+                game.undo();
+                if (boardValue >= bestValue) {
+                    bestValue = boardValue;
+                    bestMove = move;
+                }
+            }
+            game.move(bestMove);
             board.position(game.fen());
+            updateStatus();
         }
 
-        function onDragStart (source, piece, position, orientation) {
-            if (game.game_over()) return false;
-            if (piece.search(/^b/) !== -1) return false;
+        function pieceTheme(piece) {
+            var map = {
+                'wP': 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
+                'wR': 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg',
+                'wN': 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg',
+                'wB': 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg',
+                'wQ': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg',
+                'wK': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg',
+                'bP': 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg',
+                'bR': 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg',
+                'bN': 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg',
+                'bB': 'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg',
+                'bQ': 'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg',
+                'bK': 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg'
+            };
+            return map[piece];
         }
 
-        function onDrop (source, target) {
+        function updateStatus() {
+            var status = '';
+            var moveColor = (game.turn() === 'w') ? 'Ağlar (Sən)' : 'Qaralar (Bot)';
+            if (game.in_checkmate()) {
+                status = 'Oyun bitdi! ' + moveColor + ' mat oldu.';
+            } else if (game.in_draw()) {
+                status = 'Oyun heç-heçə bitdi!';
+            } else {
+                status = 'Növbə: ' + moveColor;
+                if (game.in_check()) status += ' (ŞAH!)';
+            }
+            document.getElementById('status').innerText = status;
+        }
+
+        function onDragStart(source, piece) {
+            if (game.game_over() || piece.search(/^b/) !== -1) return false;
+        }
+
+        function onDrop(source, target) {
             var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
-            window.setTimeout(makeRandomMove, 250);
+            updateStatus();
+            document.getElementById('status').innerText = 'Bot düşünür...';
+            window.setTimeout(makeBestMove, 200);
         }
 
-        var config = {
+        function resetGame() {
+            game.reset();
+            board.start();
+            updateStatus();
+        }
+
+        board = Chessboard('board', {
             draggable: true,
             position: 'start',
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            pieceTheme: pieceTheme,
             onDragStart: onDragStart,
             onDrop: onDrop
-        };
-        board = Chessboard('board', config);
+        });
     </script>
 </body>
 </html>
